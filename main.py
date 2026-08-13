@@ -1,3 +1,16 @@
+import json
+
+def load_json_data(file_path: str):
+    '''
+        Json 데이터 로드 함수
+        input : file_path 
+        output : data
+        Flow : JSON 파일 열기 -> 데이터 읽기 -> dict 반환
+    '''
+    with open(file_path, "r", encoding="utf-8") as file:
+        data = json.load(file)
+    return data
+
 def calculate_mac(pattern: list, filter_data: list) -> float:
     '''
         MAC 연산 함수(패턴과 필터의 사이즈가 동일하다라는 가정하에)
@@ -75,7 +88,6 @@ def input_matrix(name: str, size: int = 3)-> list:
             print("숫자를 입력해주세요.")
             continue
     return matrix
-
 
 def normalize_label():
     pass
