@@ -127,6 +127,78 @@ def run_user_mode():
     print(f"B 점수 : {score_b}")
     print(f"판정: {result}")
 
+def run_json_mode():
+    '''
+        모드 2 : JSON 데이터 분석
+        Flow :
+        JSON 데이터 로드
+        -> filters, patterns 분리
+        -> 패턴 데이터 순회
+        -> 패턴 크기에 맞는 필터 선택
+        -> 패턴/필터 크기 검증
+    '''
+
+    # 1. JSON 파일 읽기
+    data = load_json_data("./data.json")
+
+    # 2. 필터와 패턴 데이터 분리
+    filters = data["filters"]
+    patterns = data["patterns"]
+
+    # 3. 패턴을 하나씩 순회
+    for pattern_key, pattern_data in patterns.items():
+
+        # 패턴의 실제 배열과 정답값
+        pattern_input = pattern_data["input"]
+        expected = pattern_data["expected"]
+
+        # ex) "size_13_2" -> ["size", "13", "2"]
+        parts = pattern_key.split("_")
+
+        # 가운데 값인 13 추출
+        size = parts[1]
+
+        # ex) "size_13"
+        filter_key = f"size_{size}"
+
+        # 현재 패턴 크기에 맞는 필터 선택
+        selected_filter = filters[filter_key]
+
+        # Cross / X 필터 분리
+        cross_filter = selected_filter["cross"]
+        x_filter = selected_filter["x"]
+
+        # 4. 패턴 자체가 정상적인 N x N 배열인지 검사
+        if not validate_matrix(pattern_input):
+            print(f"{pattern_key}: FAIL - 패턴 크기 오류")
+            continue
+
+        # 5. Cross 필터가 정상적인 N x N 배열인지 검사
+        if not validate_matrix(cross_filter):
+            print(f"{pattern_key}: FAIL - Cross 필터 크기 오류")
+            continue
+
+        # 6. X 필터가 정상적인 N x N 배열인지 검사
+        if not validate_matrix(x_filter):
+            print(f"{pattern_key}: FAIL - X 필터 크기 오류")
+            continue
+
+        # 7. 패턴과 Cross 필터 크기가 같은지 검사
+        if not validate_same_size(pattern_input, cross_filter):
+            print(f"{pattern_key}: FAIL - 패턴과 Cross 필터 크기 불일치")
+            continue
+
+        # 8. 패턴과 X 필터 크기가 같은지 검사
+        if not validate_same_size(pattern_input, x_filter):
+            print(f"{pattern_key}: FAIL - 패턴과 X 필터 크기 불일치")
+            continue
+
+        print(
+            f"{pattern_key}: 검증 통과 "
+            f"(크기: {size}x{size}, expected: {expected})"
+        )
+
+
 def main():
     while True:
         print()
@@ -140,7 +212,7 @@ def main():
         if choice == "1":
             run_user_mode()
         elif choice =="2":
-            print("data.json run ")
+            run_json_mode()
         elif choice == "0":
             print("종료")
             break
