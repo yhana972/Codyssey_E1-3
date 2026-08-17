@@ -52,9 +52,7 @@ python main.py
 
 아래 위치에 프로그램 실행 직후의 메뉴 화면을 추가합니다.
 
-```markdown
 ![프로그램 메인 메뉴](./images/main-menu.png)
-```
 
 캡처에는 `1. 사용자 입력 (3x3)`, `2. data.json 분석`, `3. 마지막 성능 분석 다시 보기`, `4. 보너스 성능 비교`, `0. 종료`가 모두 보이도록 합니다.
 
@@ -90,9 +88,7 @@ python main.py
 
 ## 3.1 캡처 위치 - 사용자 입력 결과
 
-```markdown
 ![3x3 사용자 입력 결과](./images/user-mode.png)
-```
 
 캡처에는 필터 A 입력, 필터 B 입력, 패턴 입력, MAC 결과, 성능 분석 결과가 보이도록 합니다.
 
@@ -154,9 +150,7 @@ data.json 로드
 
 ## 4.1 캡처 위치 - JSON 분석 결과
 
-```markdown
 ![JSON 분석 결과](./images/json-mode.png)
-```
 
 캡처에는 각 케이스의 Cross 점수, X 점수, 판정, 정답, PASS/FAIL, 전체 결과 요약이 보이도록 합니다.
 
@@ -320,9 +314,7 @@ pattern key = size_13_1
 
 ## 8.3 캡처 위치 - 입력 검증
 
-```markdown
 ![사용자 입력 오류 처리](./images/input-validation.png)
-```
 
 예를 들어 다음처럼 잘못 입력하면 오류 메시지를 출력하고 다시 입력받습니다.
 
@@ -680,9 +672,7 @@ X_3X3 = [
 
 ## 14.1 캡처 위치 - 전체 성능 분석
 
-```markdown
 ![전체 성능 분석](./images/performance-result.png)
-```
 
 캡처에는 다음 형식의 성능표가 보이도록 합니다.
 
@@ -969,7 +959,11 @@ calculate_mac_flat(pattern_flat, filter_flat)
 
 성능 비교값은 실행 환경에 따라 달라지므로 README에는 실제 실행 후 측정값을 기록합니다.
 
-## 19.5 보너스 체크리스트
+## 19.5 캡처 위치 - 보너스 실행 결과
+
+![보너스 성능 비교](./images/bonus-result.png)
+
+## 19.6 보너스 체크리스트
 
 - [x] Cross 패턴 자동 생성 함수 구현
 - [x] X 패턴 자동 생성 함수 구현
