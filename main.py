@@ -6,6 +6,7 @@ DATA_FILE_PATH = "./data.json"
 USER_MATRIX_SIZE = 3
 EPSILON = 1e-9
 PERFORMANCE_REPEAT = 10
+PERFORMANCE_WARMUP = 1
 
 
 # JSON 모드의 3×3 성능 측정에 사용할 기본 패턴/필터
@@ -263,6 +264,7 @@ def input_matrix(name: str, size: int = USER_MATRIX_SIZE) -> list:
                 f"입력 형식 오류: 각 줄에 {size}개의 숫자를 "
                 "공백으로 구분해 입력하세요."
             )
+            print("입력 예시: 0 1 0")
             continue
 
         try:
@@ -275,6 +277,7 @@ def input_matrix(name: str, size: int = USER_MATRIX_SIZE) -> list:
 
         except ValueError:
             print("숫자를 입력해주세요.")
+            print("입력 예시: 0 1 0")
 
     return matrix
 
@@ -369,15 +372,26 @@ def measure_performance(
     pattern: list,
     filter_data: list,
     repeat: int = PERFORMANCE_REPEAT,
+    warmup: int = PERFORMANCE_WARMUP,
 ) -> float:
     """
     동일한 MAC 연산을 여러 번 반복하여
     1회 평균 실행 시간을 밀리초 단위로 측정하는 함수
-    input : pattern, filter_data, repeat
+    input : pattern, filter_data, repeat, warmup
     output : MAC 1회당 평균 실행 시간 avg_ms(float)
-    Flow : 측정 시작 -> MAC 연산 repeat회 실행 -> 측정 종료
-           -> 총 시간을 반복 횟수로 나눔 -> ms 변환 후 반환
+    Flow : 워밍업 실행 -> 측정 시작 -> MAC 연산 repeat회 실행
+           -> 측정 종료 -> 총 시간을 반복 횟수로 나눔 -> ms 변환 후 반환
+
+    측정 경계:
+    - 포함: calculate_mac() 함수 호출 구간
+    - 제외: input(), print(), data.json 파일 읽기 같은 I/O 작업
     """
+    for _ in range(warmup):
+        calculate_mac(
+            pattern=pattern,
+            filter_data=filter_data,
+        )
+
     start = time.perf_counter()
 
     for _ in range(repeat):
@@ -494,7 +508,8 @@ def show_user_result(
     print("==== MAC 결과 ====")
     print(f"A 점수 : {score_a}")
     print(f"B 점수 : {score_b}")
-    print(f"판정 : {decision}")
+    display_decision = "판정 불가" if decision == "UNDECIDED" else decision
+    print(f"판정 : {display_decision}")
 
     print()
     print("==== 성능 분석 ====")
@@ -511,26 +526,31 @@ def build_failure_reason(
     expected: str,
     cross_score: float,
     x_score: float,
+    case_avg_ms: float,
+    operation_count: int,
 ) -> str:
     """
     JSON 테스트 실패 케이스의 원인을 요약 문장으로 만드는 함수
-    input : pattern_key, decision, expected, cross_score, x_score
+    input : pattern_key, decision, expected, cross_score, x_score,
+            case_avg_ms, operation_count
     output : 실패 사유 요약 문자열
     Flow : 점수 차이 계산 -> UNDECIDED 여부 확인
-           -> 실패 사유 문자열 반환
+           -> 성능 정보 포함 -> 실패 사유 문자열 반환
     """
     score_diff = abs(cross_score - x_score)
+    performance_summary = f"평균 {case_avg_ms:.6f} ms, N² {operation_count}"
 
     if decision == "UNDECIDED":
         return (
             f"{pattern_key}: 점수 차이({score_diff:.3e})가 "
             f"epsilon({EPSILON}) 범위라 UNDECIDED 판정, "
-            f"정답 {expected}와 불일치"
+            f"정답 {expected}와 불일치 ({performance_summary})"
         )
 
     return (
         f"{pattern_key}: Cross 점수({cross_score})와 X 점수({x_score}) 비교 결과 "
-        f"{decision}로 판정되어 정답 {expected}와 불일치"
+        f"{decision}로 판정되어 정답 {expected}와 불일치 "
+        f"({performance_summary})"
     )
 
 def show_case_result(
@@ -562,6 +582,7 @@ def show_case_result(
     print(f"X 평균 연산 시간 : {x_avg_ms:.6f} ms")
     print(f"케이스 평균 연산 시간 : {case_avg_ms:.6f} ms")
     print(f"N² 연산량 : {operation_count}")
+    print(f"점수 차이 : {abs(cross_score - x_score):.3e}")
     print(f"판정 : {decision}")
     print(f"정답 : {expected}")
     print(f"결과 : {result}")
@@ -943,6 +964,8 @@ def run_json_mode() -> dict:
                     expected=expected,
                     cross_score=cross_score,
                     x_score=x_score,
+                    case_avg_ms=case_avg_ms,
+                    operation_count=operation_count,
                 )
             )
 
