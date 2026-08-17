@@ -62,6 +62,113 @@ def calculate_mac(pattern: list, filter_data: list) -> float:
     return score
 
 
+def flatten_matrix(matrix: list) -> list:
+    """
+    N×N 2차원 행렬을 N² 길이의 1차원 리스트로 변환하는 함수
+    input : matrix
+    output : 1차원 리스트
+    Flow : 행 순회 -> 행 내부 값 순회 -> flat list에 추가
+    """
+    flattened = []
+
+    for row in matrix:
+        for value in row:
+            flattened.append(value)
+
+    return flattened
+
+
+def calculate_mac_flat(pattern_flat: list, filter_flat: list) -> float:
+    """
+    1차원으로 펼친 패턴과 필터를 이용해 MAC 점수를 계산하는 함수
+    input : pattern_flat, filter_flat
+    output : MAC 연산 결과 score(float)
+    Flow : 같은 index의 값 곱하기 -> score에 누적 -> score 반환
+    """
+    score = 0.0
+
+    for index in range(len(pattern_flat)):
+        score += pattern_flat[index] * filter_flat[index]
+
+    return score
+
+
+def measure_flat_performance(
+    pattern_flat: list,
+    filter_flat: list,
+    repeat: int = PERFORMANCE_REPEAT,
+) -> float:
+    """
+    1차원 MAC 연산을 여러 번 반복하여
+    1회 평균 실행 시간을 밀리초 단위로 측정하는 함수
+    input : pattern_flat, filter_flat, repeat
+    output : MAC 1회당 평균 실행 시간 avg_ms(float)
+    Flow : 측정 시작 -> 1차원 MAC repeat회 실행
+           -> 측정 종료 -> 평균 시간 계산
+    """
+    start = time.perf_counter()
+
+    for _ in range(repeat):
+        calculate_mac_flat(
+            pattern_flat=pattern_flat,
+            filter_flat=filter_flat,
+        )
+
+    end = time.perf_counter()
+
+    elapsed = end - start
+    avg_seconds = elapsed / repeat
+    avg_ms = avg_seconds * 1000
+
+    return avg_ms
+
+
+def generate_cross_pattern(size: int) -> list:
+    """
+    주어진 크기의 Cross 패턴을 자동 생성하는 함수
+    input : size
+    output : size×size Cross 패턴
+    Flow : 중앙 행 또는 중앙 열이면 1, 아니면 0 저장
+    """
+    centers = [(size - 1) // 2, size // 2]
+    pattern = []
+
+    for row in range(size):
+        line = []
+
+        for col in range(size):
+            if row in centers or col in centers:
+                line.append(1)
+            else:
+                line.append(0)
+
+        pattern.append(line)
+
+    return pattern
+
+
+def generate_x_pattern(size: int) -> list:
+    """
+    주어진 크기의 X 패턴을 자동 생성하는 함수
+    input : size
+    output : size×size X 패턴
+    Flow : 주대각선 또는 부대각선이면 1, 아니면 0 저장
+    """
+    pattern = []
+
+    for row in range(size):
+        line = []
+
+        for col in range(size):
+            if row == col or row + col == size - 1:
+                line.append(1)
+            else:
+                line.append(0)
+
+        pattern.append(line)
+
+    return pattern
+
 def validate_matrix(array: list) -> bool:
     """
     입력된 2차원 배열이 비어 있지 않은 정상적인 N×N 정사각 행렬인지
@@ -398,6 +505,34 @@ def show_user_result(
     print(f"N² 연산량 : {operation_count}")
 
 
+def build_failure_reason(
+    pattern_key: str,
+    decision: str,
+    expected: str,
+    cross_score: float,
+    x_score: float,
+) -> str:
+    """
+    JSON 테스트 실패 케이스의 원인을 요약 문장으로 만드는 함수
+    input : pattern_key, decision, expected, cross_score, x_score
+    output : 실패 사유 요약 문자열
+    Flow : 점수 차이 계산 -> UNDECIDED 여부 확인
+           -> 실패 사유 문자열 반환
+    """
+    score_diff = abs(cross_score - x_score)
+
+    if decision == "UNDECIDED":
+        return (
+            f"{pattern_key}: 점수 차이({score_diff:.3e})가 "
+            f"epsilon({EPSILON}) 범위라 UNDECIDED 판정, "
+            f"정답 {expected}와 불일치"
+        )
+
+    return (
+        f"{pattern_key}: Cross 점수({cross_score})와 X 점수({x_score}) 비교 결과 "
+        f"{decision}로 판정되어 정답 {expected}와 불일치"
+    )
+
 def show_case_result(
     pattern_key: str,
     cross_score: float,
@@ -496,6 +631,96 @@ def show_performance_results(
         print(f"{size}x{size:<7}" f"{avg_ms:<20.6f}" f"{operation_count:<15}")
 
 
+
+def input_bonus_size() -> int:
+    """
+    보너스 모드에서 패턴 크기 N을 입력받는 함수
+    input : 콘솔 입력
+    output : 1 이상의 정수 N
+    Flow : 입력 받기 -> 정수 변환 -> 양수 검증 -> N 반환
+    """
+    while True:
+        value = input("생성할 패턴 크기 N 입력 : ").strip()
+
+        try:
+            size = int(value)
+
+        except ValueError:
+            print("정수를 입력해주세요.")
+            continue
+
+        if size < 1:
+            print("1 이상의 정수를 입력해주세요.")
+            continue
+
+        return size
+
+
+def show_matrix(title: str, matrix: list) -> None:
+    """
+    2차원 행렬을 콘솔에 보기 좋게 출력하는 함수
+    input : title, matrix
+    output : 없음(None), 콘솔에 행렬 출력
+    Flow : 제목 출력 -> 행 단위로 값 출력
+    """
+    print()
+    print(title)
+
+    for row in matrix:
+        display_values = []
+
+        for value in row:
+            if isinstance(value, float) and value.is_integer():
+                display_values.append(str(int(value)))
+            else:
+                display_values.append(str(value))
+
+        print(" ".join(display_values))
+
+def show_bonus_results(results: list) -> None:
+    """
+    보너스 모드의 2차원 MAC과 1차원 MAC 성능 비교 결과를 출력하는 함수
+    input : results
+    output : 없음(None), 콘솔에 보너스 성능 비교표 출력
+    Flow : 결과 존재 여부 확인 -> 크기별 비교 결과 출력
+    """
+    print()
+    print("==== 보너스 성능 비교 ====")
+
+    if not results:
+        print("측정된 보너스 성능 데이터가 없습니다.")
+        return
+
+    print(
+        f"{'크기':<10}"
+        f"{'2차원 MAC(ms)':<18}"
+        f"{'1차원 MAC(ms)':<18}"
+        f"{'빠른 방식':<12}"
+        f"{'점수 일치':<10}"
+    )
+    print("-" * 70)
+
+    for result in results:
+        size = result["size"]
+        normal_ms = result["normal_ms"]
+        flat_ms = result["flat_ms"]
+        same_score = result["same_score"]
+
+        if abs(normal_ms - flat_ms) < EPSILON:
+            faster = "동일"
+        elif flat_ms < normal_ms:
+            faster = "1차원"
+        else:
+            faster = "2차원"
+
+        print(
+            f"{size}x{size:<7}"
+            f"{normal_ms:<18.6f}"
+            f"{flat_ms:<18.6f}"
+            f"{faster:<12}"
+            f"{str(same_score):<10}"
+        )
+
 def run_user_mode() -> dict:
     """
     사용자가 입력한 3×3 필터 A/B와 패턴을 이용해
@@ -516,6 +741,8 @@ def run_user_mode() -> dict:
 
     print()
     print("필터 A/B 저장 완료")
+    show_matrix("==== 저장된 필터 A ====", filter_a)
+    show_matrix("==== 저장된 필터 B ====", filter_b)
 
     pattern = input_matrix("패턴")
 
@@ -709,7 +936,15 @@ def run_json_mode() -> dict:
             result = "FAIL"
             fail_count += 1
 
-            failures.append(f"{pattern_key}: " f"판정 {decision}, 정답 {expected}")
+            failures.append(
+                build_failure_reason(
+                    pattern_key=pattern_key,
+                    decision=decision,
+                    expected=expected,
+                    cross_score=cross_score,
+                    x_score=x_score,
+                )
+            )
 
         # 케이스별 결과 출력
         show_case_result(
@@ -739,6 +974,77 @@ def run_json_mode() -> dict:
     return performance_results
 
 
+def run_bonus_mode() -> None:
+    """
+    보너스 모드 실행 함수
+    input : 콘솔에서 패턴 크기 N 입력
+    output : 없음(None), 자동 생성 패턴과 2차원/1차원 MAC 성능 비교 출력
+    Flow : N 입력
+           -> N×N Cross/X 패턴 자동 생성
+           -> 생성 패턴 출력
+           -> 2차원 MAC 측정
+           -> 1차원 변환 후 MAC 측정
+           -> 점수 일치 여부 확인
+           -> 비교 결과 출력
+    """
+    size = input_bonus_size()
+
+    pattern = generate_cross_pattern(size)
+    filter_data = generate_x_pattern(size)
+
+    show_matrix(f"==== {size}x{size} Cross 패턴 ====", pattern)
+    show_matrix(f"==== {size}x{size} X 패턴 ====", filter_data)
+
+    if not validate_matrix(pattern) or not validate_matrix(filter_data):
+        print("자동 생성된 패턴이 N×N 형식이 아닙니다.")
+        return
+
+    if not validate_same_size(pattern, filter_data):
+        print("자동 생성된 Cross/X 패턴 크기가 서로 다릅니다.")
+        return
+
+    normal_score = calculate_mac(
+        pattern=pattern,
+        filter_data=filter_data,
+    )
+
+    _, normal_ms, _ = analyze_performance(
+        pattern=pattern,
+        filter_data=filter_data,
+    )
+
+    pattern_flat = flatten_matrix(pattern)
+    filter_flat = flatten_matrix(filter_data)
+
+    flat_score = calculate_mac_flat(
+        pattern_flat=pattern_flat,
+        filter_flat=filter_flat,
+    )
+
+    flat_ms = measure_flat_performance(
+        pattern_flat=pattern_flat,
+        filter_flat=filter_flat,
+    )
+
+    same_score = abs(normal_score - flat_score) < EPSILON
+
+    print()
+    print("==== 보너스 MAC 점수 비교 ====")
+    print(f"2차원 MAC 점수 : {normal_score}")
+    print(f"1차원 MAC 점수 : {flat_score}")
+    print(f"점수 일치 : {same_score}")
+
+    show_bonus_results(
+        [
+            {
+                "size": size,
+                "normal_ms": normal_ms,
+                "flat_ms": flat_ms,
+                "same_score": same_score,
+            }
+        ]
+    )
+
 def main() -> None:
     """
     NPU 시뮬레이터의 메인 메뉴를 관리하고
@@ -759,6 +1065,7 @@ def main() -> None:
         print("1. 사용자 입력 (3x3)")
         print("2. data.json 분석")
         print("3. 마지막 성능 분석 다시 보기")
+        print("4. 보너스 성능 비교")
         print("0. 종료")
 
         choice = input("선택 : ").strip()
@@ -771,6 +1078,9 @@ def main() -> None:
 
         elif choice == "3":
             show_performance_results(performance_results)
+
+        elif choice == "4":
+            run_bonus_mode()
 
         elif choice == "0":
             print("종료")
